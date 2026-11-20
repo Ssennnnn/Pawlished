@@ -1,4 +1,3 @@
-
 <?php
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -31,105 +30,205 @@ $valid = $name !== ''
     && $budget !== null
     && $budget >= 0;
 
-if (!$valid) {
-    include 'header.php';
-    echo '<p class="error">Invalid order. Please check your input.</p>';
-    echo '<a href="index.php">Return to order form</a>';
-    include 'footer.php';
-    exit;
-}
+if ($valid) {
 
-// PHP 8 match expression: identifies the selected product.
-$item = match ($product) {
-    'P1' => ['Dog Collar', 400, 50],
-    'P2' => ['Pet Bandana', 250, 35],
-    'P3' => ['Paw Toy', 200, 20],
-    'P4' => ['Pet Leash', 350, 40],
-    'P5' => ['Pet Bowl', 300, 25],
-};
+    // Identify the selected product.
+    $item = match ($product) {
+        'P1' => ['Dog Collar', 400, 50],
+        'P2' => ['Pet Bandana', 250, 35],
+        'P3' => ['Paw Toy', 200, 20],
+        'P4' => ['Pet Leash', 350, 40],
+        'P5' => ['Pet Bowl', 300, 25],
+    };
 
-[$productName, $price, $stock] = $item;
+    [$productName, $price, $stock] = $item;
 
-// Check available stock.
-if ($quantity > $stock) {
-    include 'header.php';
-    echo '<p class="error">Insufficient stock for this order.</p>';
-    echo '<p>Available stock: ' . $stock . ' pieces</p>';
-    echo '<a href="index.php">Return to order form</a>';
-    include 'footer.php';
-    exit;
-}
+    // Check available stock.
+    if ($quantity > $stock) {
+        $errorMessage = 'Insufficient stock. Available stock: '
+            . $stock . ' pieces.';
+    } else {
 
-// Calculate subtotal.
-$subtotal = $price * $quantity;
+        // Calculate subtotal.
+        $subtotal = $price * $quantity;
 
-// Determine customer discount.
-if ($type === 'member') {
-    $rate = 0.10;
-} elseif ($type === 'groomer') {
-    $rate = 0.05;
+        // Determine customer discount.
+        if ($type === 'member') {
+            $rate = 0.10;
+        } elseif ($type === 'groomer') {
+            $rate = 0.05;
+        } else {
+            $rate = 0;
+        }
+
+        // Calculate discount and tax.
+        $discount = $subtotal * $rate;
+        $afterDiscount = $subtotal - $discount;
+        $tax = $afterDiscount * 0.20;
+        $total = $afterDiscount + $tax;
+    }
+
 } else {
-    $rate = 0;
+    $errorMessage = 'Invalid order. Please check your input.';
 }
-
-// Calculate discount and tax.
-$discount = $subtotal * $rate;
-$afterDiscount = $subtotal - $discount;
-$tax = $afterDiscount * 0.20;
-$total = $afterDiscount + $tax;
-
-// Display order receipt.
-include 'header.php';
-
-echo '<h2>Order Receipt</h2>';
-
-echo '<p>Customer: ' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '</p>';
-echo '<p>Customer Type: ' . htmlspecialchars($type) . '</p>';
-
-echo '<h3>Items Ordered</h3>';
-
-for ($i = 1; $i <= $quantity; $i++) {
-    echo '<p>' . $i . '. '
-        . htmlspecialchars($productName)
-        . ' - PHP ' . number_format($price, 2)
-        . '</p>';
-}
-
-echo '<p>Subtotal: PHP ' . number_format($subtotal, 2) . '</p>';
-echo '<p>Discount: PHP ' . number_format($discount, 2) . '</p>';
-echo '<p>Tax (20%): PHP ' . number_format($tax, 2) . '</p>';
-
-echo '<h2>Final Bill: PHP ' . number_format($total, 2) . '</h2>';
-
-echo '<p>Budget: PHP ' . number_format($budget, 2) . '</p>';
-
-if ($budget >= $total) {
-    echo '<p class="success">Your budget is sufficient!</p>';
-    echo '<p>Remaining Balance: PHP '
-        . number_format($budget - $total, 2)
-        . '</p>';
-} else {
-    echo '<p class="error">Insufficient budget!</p>';
-    echo '<p>Additional Amount Needed: PHP '
-        . number_format($total - $budget, 2)
-        . '</p>';
-}
-
-// Display preparation progress.
-echo '<h3>Order Preparation Progress</h3>';
-
-$counter = 1;
-
-while ($counter <= $quantity) {
-    echo '<p>Preparing item '
-        . $counter . ' of ' . $quantity
-        . '</p>';
-
-    $counter++;
-}
-
-echo '<p><a href="index.php">Place Another Order</a></p>';
-
-include 'footer.php';
 
 ?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pawlished | Order Receipt</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="receipt-page">
+
+    <div class="receipt-paper">
+
+        <?php include 'includes/header.php'; ?>
+
+        <main class="receipt-content">
+
+            <?php if (isset($errorMessage)): ?>
+
+                <h2>Order Error</h2>
+
+                <p class="error">
+                    <?php echo htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8'); ?>
+                </p>
+
+                <a href="index.php" class="button">Return to Order Form</a>
+
+            <?php else: ?>
+
+                <div class="receipt-heading">
+                    <h2>Order Receipt</h2>
+                    <p>Thank you for shopping with Pawlished!</p>
+                </div>
+
+                <div class="receipt-details">
+                    <p>
+                        <strong>Customer:</strong>
+                        <?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>
+                    </p>
+
+                    <p>
+                        <strong>Customer Type:</strong>
+                        <?php echo htmlspecialchars(ucfirst($type), ENT_QUOTES, 'UTF-8'); ?>
+                    </p>
+                </div>
+
+                <h3>Items Ordered</h3>
+
+                <div class="receipt-items">
+
+                    <div class="receipt-item receipt-item-header">
+                        <span>Item</span>
+                        <span>Price</span>
+                    </div>
+
+                    <?php
+                    for ($i = 1; $i <= $quantity; $i++) {
+                        echo '<div class="receipt-item">';
+                        echo '<span>' . $i . '. '
+                            . htmlspecialchars($productName, ENT_QUOTES, 'UTF-8')
+                            . '</span>';
+                        echo '<span>PHP ' . number_format($price, 2) . '</span>';
+                        echo '</div>';
+                    }
+                    ?>
+
+                </div>
+
+                <div class="receipt-summary">
+
+                    <p>
+                        <span>Subtotal</span>
+                        <span>PHP <?php echo number_format($subtotal, 2); ?></span>
+                    </p>
+
+                    <p>
+                        <span>Discount</span>
+                        <span>PHP <?php echo number_format($discount, 2); ?></span>
+                    </p>
+
+                    <p>
+                        <span>Tax (20%)</span>
+                        <span>PHP <?php echo number_format($tax, 2); ?></span>
+                    </p>
+
+                </div>
+
+                <div class="receipt-total">
+                    <span>Final Bill</span>
+                    <span>PHP <?php echo number_format($total, 2); ?></span>
+                </div>
+
+                <div class="receipt-budget">
+
+                    <p>
+                        <span>Budget</span>
+                        <span>PHP <?php echo number_format($budget, 2); ?></span>
+                    </p>
+
+                    <?php if ($budget >= $total): ?>
+
+                        <p class="success">
+                            Budget is sufficient!
+                        </p>
+
+                        <p>
+                            <span>Remaining Balance</span>
+                            <span>PHP <?php echo number_format($budget - $total, 2); ?></span>
+                        </p>
+
+                    <?php else: ?>
+
+                        <p class="error">
+                            Insufficient budget!
+                        </p>
+
+                        <p>
+                            <span>Additional Amount Needed</span>
+                            <span>PHP <?php echo number_format($total - $budget, 2); ?></span>
+                        </p>
+
+                    <?php endif; ?>
+
+                </div>
+
+                <h3>Order Preparation Progress</h3>
+
+                <div class="receipt-progress">
+
+                    <?php
+                    $counter = 1;
+
+                    while ($counter <= $quantity) {
+                        echo '<p>Preparing item '
+                            . $counter . ' of ' . $quantity
+                            . '</p>';
+
+                        $counter++;
+                    }
+                    ?>
+
+                </div>
+
+                <div class="receipt-actions">
+                    <a href="index.php" class="button">Place Another Order</a>
+                </div>
+
+            <?php endif; ?>
+
+        </main>
+
+        <?php include 'includes/footer.php'; ?>
+
+    </div>
+
+</body>
+</html>
